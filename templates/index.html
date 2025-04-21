@@ -1,0 +1,220 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Expense Settlement</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      src="https://kit.fontawesome.com/a076d05399.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1>GROUP EXPENSE TRACKER</h1>
+      </header>
+
+      <!-- Flash Messages -->
+      <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %} {% if
+        messages %} {% for category, message in messages %}
+        <div class="alert alert-{{ category }}">
+          {{ message }}
+          <span class="alert-close">×</span>
+        </div>
+        {% endfor %} {% endif %} {% endwith %}
+      </div>
+      <script>
+        document.addEventListener("DOMContentLoaded", function () {
+          // Add click event listeners to all alert close buttons
+          const closeButtons = document.querySelectorAll(".alert-close");
+
+          closeButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+              this.parentElement.style.display = "none";
+            });
+          });
+        });
+      </script>
+
+      <div class="dashboard-grid">
+        <!-- Left Column - Add Expense and Actions -->
+        <div class="dashboard-column">
+          <!-- Add New Expense Form -->
+          <div class="expense-form-container">
+            <h2>ADD NEW EXPENSE</h2>
+            <form
+              method="POST"
+              action="{{ url_for('index') }}"
+              class="expense-form"
+            >
+              <div class="form-group">
+                <label for="name">NAME:</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  required
+                  placeholder="Enter name"
+                />
+              </div>
+              <div class="form-group">
+                <label for="amount">AMOUNT (₹):</label>
+                <input
+                  type="number"
+                  step="1"
+                  id="amount"
+                  name="amount"
+                  required
+                  min="0"
+                  placeholder="Enter amount"
+                />
+              </div>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                  ADD EXPENSE
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <form
+              method="POST"
+              action="{{ url_for('calculate_settlement') }}"
+              id="settlement-form"
+            >
+              <button type="submit" class="btn btn-success">
+                CALCULATE SETTLEMENT
+              </button>
+            </form>
+            <form
+              method="POST"
+              action="{{ url_for('clear_all') }}"
+              onsubmit="return confirm('Are you sure you want to clear all data?');"
+            >
+              <button type="submit" class="btn btn-danger">
+                CLEAR ALL DATA
+              </button>
+            </form>
+          </div>
+
+          <!-- Settlements Table -->
+          <div class="settlement-table" id="settlement-section">
+            <h2>SETTLEMENTS</h2>
+            {% if settlements %}
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>AMOUNT (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for settlement in settlements %}
+                  <tr>
+                    <td>{{ settlement.From.upper() }}</td>
+                    <td>{{ settlement.To.upper() }}</td>
+                    <td>₹{{ "{:,.2f}".format(settlement.amount) }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <p class="no-data">NO SETTLEMENTS CALCULATED YET.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Right Column - Expenses and Totals -->
+        <div class="dashboard-column">
+          <!-- Total Expenses Per Person -->
+          <div class="summary-table">
+            <h2>TOTAL EXPENSES PER PERSON</h2>
+            {% if expense_totals %}
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>NAME</th>
+                    <th>TOTAL AMOUNT (₹)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for name, amount in expense_totals.items() %}
+                  <tr>
+                    <td>{{ name.upper() }}</td>
+                    <td>₹{{ "{:,.2f}".format(amount) }}</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <p class="no-data">NO EXPENSES TO SUMMARIZE.</p>
+            {% endif %}
+          </div>
+
+          <!-- Expenses Table -->
+          <div class="expense-table">
+            <h2>EXPENSES</h2>
+            {% if expenses %}
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>NAME</th>
+                    <th>AMOUNT (₹)</th>
+                    <th>DATE & TIME</th>
+                    <th>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for expense in expenses %}
+                  <tr>
+                    <td>{{ expense.name.upper() }}</td>
+                    <td>₹{{ "{:,.2f}".format(expense.amount) }}</td>
+                    <td>{{ expense.created_at.strftime('%d-%m-%Y %H:%M') }}</td>
+                    <td>
+                      <form
+                        method="POST"
+                        action="{{ url_for('delete_expense', expense_id=expense.id) }}"
+                        style="display: inline"
+                      >
+                        <button
+                          type="submit"
+                          class="delete-btn"
+                          onclick="return confirm('Are you sure you want to delete this expense?');"
+                        >
+                          DELETE
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            {% else %}
+            <p class="no-data">NO EXPENSES ADDED YET.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
